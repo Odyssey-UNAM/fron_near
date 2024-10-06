@@ -21,6 +21,14 @@ scene.add(light);
 // Parámetro gravitacional estándar (para unidades UA y días)
 const mu = 0.01720209895 * 0.01720209895; // (UA^3 / día^2)
 
+// Variables globales para interactividad
+const clickableObjects = [];
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// Añadir el evento de clic al renderer
+renderer.domElement.addEventListener('click', onMouseClick, false);
+
 // Función para convertir elementos keplerianos a coordenadas cartesianas
 function keplerianToCartesian(orbitalElements, mu) {
     const {
@@ -116,7 +124,7 @@ async function fetchOrbitalData(id) {
 
 // Función principal para cargar y visualizar los objetos
 async function loadAndVisualizeObjects() {
-    const date = '2021-04-15'; // Puedes obtener la fecha actual o permitir al usuario elegirla
+    const date = '2024-08-5'; // Puedes obtener la fecha actual o permitir al usuario elegirla
     const objects = await fetchNearEarthObjects(date);
 
     console.log(`Se encontraron ${objects.length} objetos cercanos a la Tierra.`);
@@ -168,13 +176,22 @@ async function loadAndVisualizeObjects() {
         const orbitLine = new THREE.Line(orbitGeometry, orbitMaterial);
         scene.add(orbitLine);
 
-        // Opcional: Añadir una esfera en la posición actual del objeto
+        // Añadir una esfera en la posición actual del objeto
         const currentPosition = keplerianToCartesian(orbitalElements, mu);
         const sphereGeometry = new THREE.SphereGeometry(0.02, 16, 16);
         const sphereMaterial = new THREE.MeshBasicMaterial({ color: orbitMaterial.color });
         const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         sphere.position.copy(currentPosition);
         scene.add(sphere);
+
+        // Almacenar referencia a la esfera y sus datos para interacción
+        sphere.userData = {
+            orbitalElements: orbitalElements,
+            id: id,
+            name: obj.name || `Objeto ${id}`,
+            // Puedes agregar más información si lo deseas
+        };
+        clickableObjects.push(sphere);
     }
     console.log('Objetos cargados y visualizados con éxito.');
 }
@@ -232,7 +249,38 @@ animate();
 window.addEventListener('resize', onWindowResize, false);
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    renderer.setSize(width, height);
+}
+
+// Función para manejar el clic del mouse
+function onMouseClick(event) {
+    event.preventDefault();
+
+    // Obtener el rectángulo del canvas para calcular las coordenadas correctas
+    const rect = renderer.domElement.getBoundingClientRect();
+
+    // Convertir las coordenadas del mouse a coordenadas normalizadas del dispositivo (-1 a +1)
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = - ((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Actualizar el raycaster con la posición del mouse y la cámara
+    raycaster.setFromCamera(mouse, camera);
+
+    // Calcular los objetos que intersectan con el rayo
+    const intersects = raycaster.intersectObjects(clickableObjects);
+
+    if (intersects.length > 0) {
+        // El primer objeto es el más cercano al mouse
+        const clickedObject = intersects[0].object;
+        // Acceder a los datos almacenados
+        const data = clickedObject.userData;
+        // Mostrar la información (puedes personalizar esto)
+        alert(`Has hecho clic en: ${data.name}\nID: ${data.id}\nElementos orbitales:\n${JSON.stringify(data.orbitalElements, null, 2)}`);
+    }
 }
