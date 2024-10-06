@@ -8,11 +8,33 @@
     </style>
 </head>
 <body>
+    <!-- Cuadro de diálogo flotante para mostrar información -->
+    <div id="infoBox" style="
+        display: none;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7); 
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        z-index: 1000;">
+        <span id="closeButton" style="
+            cursor: pointer; 
+            position: absolute; 
+            top: 5px; 
+            right: 10px; 
+            font-weight: bold; 
+            font-size: 16px;">&times;</span>
+        <div id="infoContent"></div>
+    </div>
+
     <!-- Incluir Three.js y OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
     <!-- Enlace al archivo JavaScript principal -->
     <script src="main.js"></script>
-	
 </body>
 </html>
