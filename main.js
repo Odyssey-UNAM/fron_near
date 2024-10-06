@@ -50,9 +50,11 @@ const clickableObjects = [];
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Añadir el evento de clic al renderer
-renderer.domElement.addEventListener('click', onMouseClick, true);
+// Añadir el evento de movimiento del mouse al renderer
+renderer.domElement.addEventListener('mousemove', onMouseMove, true);
 
+// Variable global para almacenar el objeto intersectado
+let INTERSECTED = null;
 
 // Función para convertir elementos keplerianos a coordenadas cartesianas
 function keplerianToCartesian(orbitalElements, mu) {
@@ -207,8 +209,8 @@ async function loadAndVisualizeObjects() {
         const textureLoader = new THREE.TextureLoader();
         const sphereTexture = textureLoader.load('asteroid.jpeg');
         const sphereMaterial = new THREE.MeshPhongMaterial({
-          map: sphereTexture
-      });
+            map: sphereTexture
+        });
         const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         sphere.position.copy(currentPosition);
         scene.add(sphere);
@@ -265,6 +267,10 @@ if (typeof THREE.OrbitControls !== 'undefined') {
 let angle = 0;
 const radius = 5; // Distancia desde el centro
 
+// Variables para controlar si el mouse se ha movido
+let mouseMoved = false;
+let cursorEvent;
+
 // Función de animación
 function animate() {
     requestAnimationFrame(animate);
@@ -285,6 +291,51 @@ function animate() {
     // Actualizar los controles si están habilitados
     if (controls) controls.update();
 
+    // Si el mouse se ha movido, actualizar el raycaster
+    if (mouseMoved) {
+        // Actualizar el raycaster con la posición del mouse y la cámara
+        raycaster.setFromCamera(mouse, camera);
+
+        // Calcular los objetos que intersectan con el rayo
+        const intersects = raycaster.intersectObjects(clickableObjects);
+
+        if (intersects.length > 0) {
+            const intersectedObject = intersects[0].object;
+
+            if (INTERSECTED !== intersectedObject) {
+                INTERSECTED = intersectedObject;
+
+                // Acceder a los datos almacenados en el objeto
+                const data = INTERSECTED.userData;
+
+                // Mostrar la información en el cuadro de diálogo
+                const infoBox = document.getElementById('infoBox');
+                const infoContent = document.getElementById('infoContent');
+
+                // Formatear la información en HTML
+                infoContent.innerHTML = `
+                    <strong>Objeto:</strong> ${data.name}<br>
+                    <strong>ID:</strong> ${data.id}<br>
+                    <strong>Elementos orbitales:</strong><br>
+                    <pre>${JSON.stringify(data.orbitalElements, null, 2)}</pre>
+                `;
+
+                // Mostrar el cuadro de información
+                infoBox.style.display = 'block';
+            }
+
+            // Actualizar la posición del cuadro de información cerca del cursor
+            const infoBox = document.getElementById('infoBox');
+            infoBox.style.left = `${cursorEvent.clientX + 15}px`;
+            infoBox.style.top = `${cursorEvent.clientY + 15}px`;
+        } else {
+            // No hacemos nada; el infoBox permanece visible y en su posición actual
+            // Si deseas ocultar el infoBox cuando se hace clic fuera de los objetos, puedes agregar un evento adicional
+        }
+
+        mouseMoved = false;
+    }
+
     renderer.render(scene, camera);
 }
 animate();
@@ -302,8 +353,8 @@ function onWindowResize() {
     renderer.setSize(width, height);
 }
 
-// Función para manejar el clic del mouse y mostrar información en el cuadro de diálogo
-function onMouseClick(event) {
+// Función para manejar el movimiento del mouse y mostrar información en el cuadro de diálogo
+function onMouseMove(event) {
     event.preventDefault();
 
     // Obtener el rectángulo del canvas para calcular las coordenadas correctas
@@ -313,39 +364,14 @@ function onMouseClick(event) {
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    // Actualizar el raycaster con la posición del mouse y la cámara
-    raycaster.setFromCamera(mouse, camera);
+    // Guardar el evento para usar la posición del cursor
+    cursorEvent = event;
 
-    // Calcular los objetos que intersectan con el rayo
-    const intersects = raycaster.intersectObjects(clickableObjects);
-
-    if (intersects.length > 0) {
-        // El primer objeto es el más cercano al mouse
-        const clickedObject = intersects[0].object;
-
-        // Acceder a los datos almacenados en el objeto
-        const data = clickedObject.userData;
-
-        // Mostrar la información en el cuadro de diálogo
-        const infoBox = document.getElementById('infoBox');
-        const infoContent = document.getElementById('infoContent');
-
-        // Formatear la información en HTML
-        infoContent.innerHTML = `
-            <strong>Has hecho clic en:</strong> ${data.name}<br>
-            <strong>ID:</strong> ${data.id}<br>
-            <strong>Elementos orbitales:</strong><br>
-            <pre>${JSON.stringify(data.orbitalElements, null, 2)}</pre>
-        `;
-
-        // Posicionar el cuadro de información cerca del clic
-        infoBox.style.display = 'block';
-        infoBox.style.left = `${event.clientX}px`;
-        infoBox.style.top = `${event.clientY}px`;
-    }
+    mouseMoved = true;
 }
 
 // Manejador para cerrar el cuadro de diálogo cuando se haga clic en el botón de cerrar
 document.getElementById('closeButton').addEventListener('click', function () {
     document.getElementById('infoBox').style.display = 'none';
+    INTERSECTED = null;
 });
