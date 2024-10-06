@@ -302,7 +302,7 @@ function onWindowResize() {
     renderer.setSize(width, height);
 }
 
-// Función para manejar el clic del mouse
+// Función para manejar el clic del mouse y mostrar información en el cuadro de diálogo
 function onMouseClick(event) {
     event.preventDefault();
 
@@ -311,7 +311,7 @@ function onMouseClick(event) {
 
     // Convertir las coordenadas del mouse a coordenadas normalizadas del dispositivo (-1 a +1)
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = - ((event.clientY - rect.top) / rect.height) * 2 + 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     // Actualizar el raycaster con la posición del mouse y la cámara
     raycaster.setFromCamera(mouse, camera);
@@ -322,9 +322,30 @@ function onMouseClick(event) {
     if (intersects.length > 0) {
         // El primer objeto es el más cercano al mouse
         const clickedObject = intersects[0].object;
-        // Acceder a los datos almacenados
+
+        // Acceder a los datos almacenados en el objeto
         const data = clickedObject.userData;
-        // Mostrar la información (puedes personalizar esto)
-        alert(`Has hecho clic en: ${data.name}\nID: ${data.id}\nElementos orbitales:\n${JSON.stringify(data.orbitalElements, null, 2)}`);
+
+        // Mostrar la información en el cuadro de diálogo
+        const infoBox = document.getElementById('infoBox');
+        const infoContent = document.getElementById('infoContent');
+
+        // Formatear la información en HTML
+        infoContent.innerHTML = `
+            <strong>Has hecho clic en:</strong> ${data.name}<br>
+            <strong>ID:</strong> ${data.id}<br>
+            <strong>Elementos orbitales:</strong><br>
+            <pre>${JSON.stringify(data.orbitalElements, null, 2)}</pre>
+        `;
+
+        // Posicionar el cuadro de información cerca del clic
+        infoBox.style.display = 'block';
+        infoBox.style.left = `${event.clientX}px`;
+        infoBox.style.top = `${event.clientY}px`;
     }
 }
+
+// Manejador para cerrar el cuadro de diálogo cuando se haga clic en el botón de cerrar
+document.getElementById('closeButton').addEventListener('click', function () {
+    document.getElementById('infoBox').style.display = 'none';
+});
