@@ -1,6 +1,12 @@
 // 1. Configurar la escena, la cámara y el renderizador
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000); // Fondo negro
+
+// Importar la textura para el fondo
+const loader = new THREE.TextureLoader();
+loader.load('2k_stars_milky_way.jpg', function(texture) {
+    // Asignar la textura como fondo de la escena
+    scene.background = texture;
+});
 
 const camera = new THREE.PerspectiveCamera(
     75, // Campo de visión
@@ -13,10 +19,28 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Añadir una luz (opcional)
-const light = new THREE.PointLight(0xffffff, 1, 0);
-light.position.set(0, 0, 0);
-scene.add(light);
+// Habilitar sombras en el renderizador
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Añadir iluminación a la escena
+// Luz direccional para simular el Sol
+const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+sunLight.position.set(10, 10, 10);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.height = 2048;
+scene.add(sunLight);
+
+// Añadir una luz puntual
+const pointLight = new THREE.PointLight(0xffffff, 1, 500);
+pointLight.position.set(0, 0, 0);
+pointLight.castShadow = true;
+scene.add(pointLight);
+
+// Luz ambiental suave
+const ambientLight = new THREE.AmbientLight(0x333333); // Luz ambiental tenue
+scene.add(ambientLight);
 
 // Parámetro gravitacional estándar (para unidades UA y días)
 const mu = 0.01720209895 * 0.01720209895; // (UA^3 / día^2)
@@ -27,7 +51,8 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 // Añadir el evento de clic al renderer
-renderer.domElement.addEventListener('click', onMouseClick, false);
+renderer.domElement.addEventListener('click', onMouseClick, true);
+
 
 // Función para convertir elementos keplerianos a coordenadas cartesianas
 function keplerianToCartesian(orbitalElements, mu) {
@@ -178,8 +203,12 @@ async function loadAndVisualizeObjects() {
 
         // Añadir una esfera en la posición actual del objeto
         const currentPosition = keplerianToCartesian(orbitalElements, mu);
-        const sphereGeometry = new THREE.SphereGeometry(0.02, 16, 16);
-        const sphereMaterial = new THREE.MeshBasicMaterial({ color: orbitMaterial.color });
+        const sphereGeometry = new THREE.SphereGeometry(0.05, 14, 16);
+        const textureLoader = new THREE.TextureLoader();
+        const sphereTexture = textureLoader.load('asteroid.jpeg');
+        const sphereMaterial = new THREE.MeshPhongMaterial({
+          map: sphereTexture
+      });
         const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         sphere.position.copy(currentPosition);
         scene.add(sphere);
@@ -200,9 +229,21 @@ async function loadAndVisualizeObjects() {
 loadAndVisualizeObjects();
 console.log('Cargando objetos...');
 
-// Añadir una representación del Sol en el centro
-const earthGeometry = new THREE.SphereGeometry(0.1, 32, 32);
-const earthMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+// Cargar las texturas de día y de noche
+const textureLoader = new THREE.TextureLoader();
+const earthDayTexture = textureLoader.load('2k_earth_daymap.jpg');
+const earthNightTexture = textureLoader.load('2k_earth_nightmap.jpg');
+
+// Crear el material combinando ambas texturas
+const earthMaterial = new THREE.MeshPhongMaterial({
+    map: earthDayTexture,
+    emissiveMap: earthNightTexture,
+    emissive: new THREE.Color(0xffffff),
+    emissiveIntensity: 1,
+});
+
+// Crear la geometría y la malla de la Tierra
+const earthGeometry = new THREE.SphereGeometry(0.2, 32, 32);
 const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
 scene.add(earthMesh);
 
@@ -228,7 +269,7 @@ const radius = 5; // Distancia desde el centro
 function animate() {
     requestAnimationFrame(animate);
 
-    // Actualizar el ángulo para el movimiento
+    // Actualizar el ángulo para el movimiento de la cámara
     angle += 0.005; // Ajusta este valor para cambiar la velocidad
 
     // Calcular la nueva posición de la cámara
@@ -237,6 +278,9 @@ function animate() {
 
     // Asegurarse de que la cámara siempre mire al centro
     camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    // Rotar la Tierra sobre su eje Y
+    earthMesh.rotation.y += 0.001; // Ajusta la velocidad de rotación según necesites
 
     // Actualizar los controles si están habilitados
     if (controls) controls.update();
