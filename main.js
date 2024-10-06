@@ -201,10 +201,10 @@ loadAndVisualizeObjects();
 console.log('Cargando objetos...');
 
 // Añadir una representación del Sol en el centro
-const sunGeometry = new THREE.SphereGeometry(0.1, 32, 32);
-const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
-scene.add(sunMesh);
+const earthGeometry = new THREE.SphereGeometry(0.1, 32, 32);
+const earthMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
+scene.add(earthMesh);
 
 // Posicionar la cámara inicialmente
 camera.position.z = 5;
